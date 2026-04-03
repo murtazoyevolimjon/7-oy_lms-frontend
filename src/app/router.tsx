@@ -9,6 +9,7 @@ import GroupDetailsPage from '@/features/groups/pages/group-details-page';
 import CoursesPage from '@/features/management/pages/courses-page';
 import RoomsPage from '@/features/management/pages/rooms-page';
 import EmployeesPage from '@/features/management/pages/employees-page';
+import StudentLogin from '@/features/student/StudentLogin';
 
 export const router = createBrowserRouter(
   [
@@ -25,6 +26,7 @@ export const router = createBrowserRouter(
         { path: 'management/courses', element: <CoursesPage /> },
         { path: 'management/rooms', element: <RoomsPage /> },
         { path: 'management/employees', element: <EmployeesPage /> },
+        { path: '/student/login', element: <StudentLogin /> },
       ],
     },
   ],

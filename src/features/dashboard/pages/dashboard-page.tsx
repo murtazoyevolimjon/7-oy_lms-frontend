@@ -28,25 +28,32 @@ export default function DashboardPage() {
           fetch(`${baseUrl}/groups`),
         ]);
 
-        const students = await studentsRes.json();
-        const groups = await groupsRes.json();
+        const studentsData = await studentsRes.json();
+        const groupsData = await groupsRes.json();
 
-        // students array ichidan status bo'yicha ajratamiz
+        const students = Array.isArray(studentsData)
+          ? studentsData
+          : studentsData?.data || [];
+
+        const groups = Array.isArray(groupsData)
+          ? groupsData
+          : groupsData?.data || [];
+
         const activeStudents = students.filter(
-          (s: any) => s.status === 'active'
+          (s: any) => String(s.status).toUpperCase() === 'ACTIVE'
         ).length;
 
         const frozen = students.filter(
-          (s: any) => s.status === 'frozen'
+          (s: any) => String(s.status).toUpperCase() === 'FROZEN'
         ).length;
 
         const archived = students.filter(
-          (s: any) => s.status === 'archived'
+          (s: any) => String(s.status).toUpperCase() === 'ARCHIVED'
         ).length;
 
         setStats({
           activeStudents,
-          groups: Array.isArray(groups) ? groups.length : groups.total ?? 0,
+          groups: Array.isArray(groups) ? groups.length : 0,
           frozen,
           archived,
         });
