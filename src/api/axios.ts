@@ -1,7 +1,11 @@
 import axios from 'axios';
 
+const baseURL =
+  import.meta.env.VITE_API_URL?.trim() ||
+  'https://crm-backend-w2lx.onrender.com/api';
+
 export const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'http://139.59.33.156:8002/api',
+  baseURL,
   headers: {
     'Content-Type': 'application/json',
   },
@@ -28,3 +32,5 @@ api.interceptors.response.use(
     return Promise.reject(error);
   },
 );
+
+export default api;
