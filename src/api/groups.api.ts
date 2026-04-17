@@ -4,7 +4,7 @@ export type GroupPayload = {
   name: string;
   courseId: string;
   roomId: string;
-  teacherId: string;
+  teacherId: string | number;
   studentIds?: string[];
   startDate: string;
   endDate: string;

@@ -10,8 +10,7 @@ export type LoginResponse = {
   refreshToken?: string;
   user: {
     id: string;
-    fullName: string;
-    role: string;
+    fullName: string; role: string;
     avatar?: string | null;
   };
 };
@@ -24,9 +23,20 @@ export type RegisterAdminPayload = {
 };
 
 export const authApi = {
-  async login(payload: LoginPayload) {
+  async loginAdmin(payload: LoginPayload) {
     const { data } = await api.post<LoginResponse>('/auth/login/admin', payload);
     return data;
+  },
+  async loginTeacher(payload: LoginPayload) {
+    const { data } = await api.post<LoginResponse>('/auth/login/teacher', payload);
+    return data;
+  },
+  async loginStudent(payload: LoginPayload) {
+    const { data } = await api.post<LoginResponse>('/auth/login/student', payload);
+    return data;
+  },
+  async login(payload: LoginPayload) {
+    return this.loginAdmin(payload);
   },
   async me() {
     const { data } = await api.get('/auth/me');

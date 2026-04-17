@@ -7,6 +7,7 @@ const StudentLogin = () => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
+    const [showPassword, setShowPassword] = useState(true);
     const navigate = useNavigate();
 
     const handleLogin = async (e: React.FormEvent) => {
@@ -37,13 +38,23 @@ const StudentLogin = () => {
                         required
                     />
                     <label>Parol</label>
-                    <input
-                        type="password"
-                        placeholder="Parolni kiriting"
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        required
-                    />
+                    <div className="password-input-wrapper">
+                        <input
+                            type={showPassword ? 'text' : 'password'}
+                            placeholder="Parolni kiriting"
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                            required
+                        />
+                        <button
+                            type="button"
+                            className="password-toggle"
+                            onClick={() => setShowPassword((prev) => !prev)}
+                            aria-label="Parolni ko'rsatish yoki yashirish"
+                        >
+                            {showPassword ? '🙈' : '👁️'}
+                        </button>
+                    </div>
                     <button type="submit">Kirish</button>
                 </form>
             </div>

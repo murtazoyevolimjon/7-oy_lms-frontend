@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { teachersApi, type TeacherPayload } from '@/api/teachers.api';
 import { formatDate } from '@/lib/utils';
-import { Pencil, Trash2 } from 'lucide-react';
+import { Eye, EyeOff, Pencil, Trash2 } from 'lucide-react';
 
 type Teacher = {
   id: number;
@@ -12,15 +12,86 @@ type Teacher = {
   experience: number;
   status: string;
   created_at: string;
+  adminPassword?: string;
 };
 
-const initialForm: TeacherPayload = {
+type TeacherFormState = Omit<TeacherPayload, 'experience'> & {
+  experience: string;
+};
+
+type TeacherEditFormState = {
+  fullName: string;
+  email: string;
+  password: string;
+  position: string;
+  experience: string;
+  photo?: File | null;
+};
+
+const initialForm: TeacherFormState = {
   fullName: '',
   email: '',
   password: '',
   position: '',
-  experience: 0,
+  experience: '',
   photo: null,
+};
+
+const initialEditForm: TeacherEditFormState = {
+  fullName: '',
+  email: '',
+  password: '',
+  position: '',
+  experience: '',
+  photo: null,
+};
+
+const TEACHER_PASSWORDS_STORAGE_KEY = 'crm-admin-teacher-passwords';
+
+const loadTeacherPasswords = (): Record<string, string> => {
+  try {
+    const raw = localStorage.getItem(TEACHER_PASSWORDS_STORAGE_KEY);
+    if (!raw) return {};
+
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== 'object') return {};
+
+    return Object.fromEntries(
+      Object.entries(parsed).filter(([, value]) => typeof value === 'string'),
+    ) as Record<string, string>;
+  } catch {
+    return {};
+  }
+};
+
+const saveTeacherPasswords = (store: Record<string, string>) => {
+  localStorage.setItem(TEACHER_PASSWORDS_STORAGE_KEY, JSON.stringify(store));
+};
+
+const setTeacherPassword = (id: number, password: string) => {
+  const trimmed = password.trim();
+  const store = loadTeacherPasswords();
+
+  if (!trimmed) {
+    delete store[String(id)];
+  } else {
+    store[String(id)] = trimmed;
+  }
+
+  saveTeacherPasswords(store);
+};
+
+const parseExperienceOrThrow = (value: string) => {
+  if (value.trim() === '') {
+    throw new Error('Tajriba maydoni majburiy');
+  }
+
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed) || parsed < 0) {
+    throw new Error("Tajriba uchun to'g'ri raqam kiriting");
+  }
+
+  return parsed;
 };
 
 export default function TeachersPage() {
@@ -32,15 +103,22 @@ export default function TeachersPage() {
   const [loading, setLoading] = useState(false);
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [editTeacher, setEditTeacher] = useState<Teacher | null>(null);
-  const [form, setForm] = useState<TeacherPayload>(initialForm);
-  const [editForm, setEditForm] = useState<Partial<TeacherPayload>>({
-    fullName: '', email: '', position: '', experience: 0,
-  });
+  const [form, setForm] = useState<TeacherFormState>(initialForm);
+  const [editForm, setEditForm] = useState<TeacherEditFormState>(initialEditForm);
+  const [showCreatePassword, setShowCreatePassword] = useState(true);
+  const [showEditPassword, setShowEditPassword] = useState(true);
 
   const fetchTeachers = async () => {
     try {
       const res = await teachersApi.list();
-      setTeachers(res?.data || res || []);
+      const rows: Teacher[] = res?.data || res || [];
+      const storedPasswords = loadTeacherPasswords();
+      setTeachers(
+        rows.map((teacher) => ({
+          ...teacher,
+          adminPassword: storedPasswords[String(teacher.id)] || '',
+        })),
+      );
     } catch {
       setError("O'qituvchilarni yuklashda xatolik.");
     }
@@ -55,12 +133,27 @@ export default function TeachersPage() {
     setError('');
     setLoading(true);
     try {
-      await teachersApi.create(form);
+      const payload: TeacherPayload = {
+        fullName: form.fullName,
+        email: form.email,
+        password: form.password,
+        position: form.position,
+        experience: parseExperienceOrThrow(form.experience),
+        photo: form.photo,
+      };
+
+      const res = await teachersApi.create(payload);
+      const createdId = Number(res?.data?.id);
+      if (Number.isFinite(createdId) && form.password.trim()) {
+        setTeacherPassword(createdId, form.password);
+      }
+
       setOpen(false);
       setForm(initialForm);
+      setShowCreatePassword(false);
       fetchTeachers();
     } catch (err: any) {
-      const message = err?.response?.data?.message;
+      const message = err?.message || err?.response?.data?.message;
       setError(Array.isArray(message) ? message.join(', ') : message || 'Xato yuz berdi');
     } finally {
       setLoading(false);
@@ -82,11 +175,14 @@ export default function TeachersPage() {
 
   const openEdit = (teacher: Teacher) => {
     setEditTeacher(teacher);
+    setShowEditPassword(false);
     setEditForm({
       fullName: teacher.fullName,
       email: teacher.email,
+      password: teacher.adminPassword || '',
       position: teacher.position,
-      experience: teacher.experience,
+      experience: String(teacher.experience),
+      photo: null,
     });
     setEditOpen(true);
   };
@@ -97,12 +193,30 @@ export default function TeachersPage() {
     setError('');
     setLoading(true);
     try {
-      await teachersApi.update(String(editTeacher.id), editForm);
+      const payload: Partial<TeacherPayload> = {
+        fullName: editForm.fullName,
+        email: editForm.email,
+        position: editForm.position,
+        experience: parseExperienceOrThrow(editForm.experience),
+        photo: editForm.photo ?? undefined,
+      };
+
+      const nextPassword = editForm.password.trim();
+      if (nextPassword) {
+        payload.password = nextPassword;
+      }
+
+      await teachersApi.update(String(editTeacher.id), payload);
+      if (nextPassword) {
+        setTeacherPassword(editTeacher.id, nextPassword);
+      }
+
       setEditOpen(false);
       setEditTeacher(null);
+      setEditForm(initialEditForm);
       fetchTeachers();
     } catch (err: any) {
-      const message = err?.response?.data?.message;
+      const message = err?.message || err?.response?.data?.message;
       setError(Array.isArray(message) ? message.join(', ') : message || 'Xato yuz berdi');
     } finally {
       setLoading(false);
@@ -207,24 +321,62 @@ export default function TeachersPage() {
           <div className="h-full w-full max-w-md overflow-y-auto bg-white dark:bg-slate-800 p-5 shadow-2xl">
             <div className="mb-4 flex items-center justify-between">
               <h2 className="text-xl font-semibold dark:text-white">O'qituvchi qo'shish</h2>
-              <button onClick={() => setOpen(false)} className="dark:text-white">✕</button>
+              <button
+                onClick={() => {
+                  setOpen(false);
+                  setShowCreatePassword(false);
+                }}
+                className="dark:text-white"
+              >
+                ✕
+              </button>
             </div>
             <form onSubmit={handleSubmit} className="space-y-4">
               <input className="w-full rounded-xl border px-4 py-3 dark:bg-slate-700 dark:border-slate-600 dark:text-white dark:placeholder-slate-400" placeholder="FIO"
                 value={form.fullName} onChange={(e) => setForm({ ...form, fullName: e.target.value })} />
               <input className="w-full rounded-xl border px-4 py-3 dark:bg-slate-700 dark:border-slate-600 dark:text-white dark:placeholder-slate-400" placeholder="Email"
                 value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
-              <input type="password" className="w-full rounded-xl border px-4 py-3 dark:bg-slate-700 dark:border-slate-600 dark:text-white dark:placeholder-slate-400" placeholder="Parol"
-                value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} />
+              <div className="relative">
+                <input
+                  type={showCreatePassword ? 'text' : 'password'}
+                  className="w-full rounded-xl border px-4 py-3 pr-12 dark:bg-slate-700 dark:border-slate-600 dark:text-white dark:placeholder-slate-400"
+                  placeholder="Parol"
+                  value={form.password}
+                  onChange={(e) => setForm({ ...form, password: e.target.value })}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowCreatePassword((prev) => !prev)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 transition hover:text-slate-600 dark:hover:text-slate-200"
+                  aria-label="Parolni ko'rsatish yoki yashirish"
+                >
+                  {showCreatePassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              </div>
               <input className="w-full rounded-xl border px-4 py-3 dark:bg-slate-700 dark:border-slate-600 dark:text-white dark:placeholder-slate-400" placeholder="Lavozim"
                 value={form.position} onChange={(e) => setForm({ ...form, position: e.target.value })} />
-              <input type="number" className="w-full rounded-xl border px-4 py-3 dark:bg-slate-700 dark:border-slate-600 dark:text-white dark:placeholder-slate-400" placeholder="Tajriba (yil)"
-                value={form.experience} onChange={(e) => setForm({ ...form, experience: Number(e.target.value) })} />
+              <input
+                type="text"
+                inputMode="numeric"
+                className="w-full rounded-xl border px-4 py-3 dark:bg-slate-700 dark:border-slate-600 dark:text-white dark:placeholder-slate-400"
+                placeholder="Tajriba (yil)"
+                value={form.experience}
+                onChange={(e) => setForm({ ...form, experience: e.target.value.replace(/[^\d]/g, '') })}
+              />
               <input type="file" accept="image/*" className="dark:text-slate-300"
                 onChange={(e) => setForm({ ...form, photo: e.target.files?.[0] || null })} />
               {error && <p className="text-sm text-red-500">{error}</p>}
               <div className="flex justify-end gap-3">
-                <button type="button" onClick={() => setOpen(false)} className="rounded-xl border px-4 py-2 dark:border-slate-600 dark:text-white">Bekor qilish</button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setOpen(false);
+                    setShowCreatePassword(false);
+                  }}
+                  className="rounded-xl border px-4 py-2 dark:border-slate-600 dark:text-white"
+                >
+                  Bekor qilish
+                </button>
                 <button type="submit" disabled={loading} className="rounded-xl bg-violet-600 px-4 py-2 text-white disabled:opacity-50">
                   {loading ? 'Saqlanmoqda...' : 'Saqlash'}
                 </button>
@@ -248,10 +400,39 @@ export default function TeachersPage() {
                 value={editForm.fullName} onChange={(e) => setEditForm({ ...editForm, fullName: e.target.value })} />
               <input className="w-full rounded-xl border px-4 py-3 dark:bg-slate-700 dark:border-slate-600 dark:text-white dark:placeholder-slate-400" placeholder="Email"
                 value={editForm.email} onChange={(e) => setEditForm({ ...editForm, email: e.target.value })} />
+              <div>
+                <label className="mb-1 block text-sm font-medium dark:text-slate-300">Parol</label>
+                <div className="relative">
+                  <input
+                    type={showEditPassword ? 'text' : 'password'}
+                    className="w-full rounded-xl border px-4 py-3 pr-12 dark:bg-slate-700 dark:border-slate-600 dark:text-white dark:placeholder-slate-400"
+                    placeholder="Parol kiriting"
+                    value={editForm.password}
+                    onChange={(e) => setEditForm({ ...editForm, password: e.target.value })}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowEditPassword((prev) => !prev)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 transition hover:text-slate-600 dark:hover:text-slate-200"
+                    aria-label="Parolni ko'rsatish yoki yashirish"
+                  >
+                    {showEditPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                </div>
+                <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                  Admin shu maydonda parolni qo'lda o'rnatadi va brauzerda eslab qolinadi.
+                </p>
+              </div>
               <input className="w-full rounded-xl border px-4 py-3 dark:bg-slate-700 dark:border-slate-600 dark:text-white dark:placeholder-slate-400" placeholder="Lavozim"
                 value={editForm.position} onChange={(e) => setEditForm({ ...editForm, position: e.target.value })} />
-              <input type="number" className="w-full rounded-xl border px-4 py-3 dark:bg-slate-700 dark:border-slate-600 dark:text-white dark:placeholder-slate-400" placeholder="Tajriba (yil)"
-                value={editForm.experience} onChange={(e) => setEditForm({ ...editForm, experience: Number(e.target.value) })} />
+              <input
+                type="text"
+                inputMode="numeric"
+                className="w-full rounded-xl border px-4 py-3 dark:bg-slate-700 dark:border-slate-600 dark:text-white dark:placeholder-slate-400"
+                placeholder="Tajriba (yil)"
+                value={editForm.experience}
+                onChange={(e) => setEditForm({ ...editForm, experience: e.target.value.replace(/[^\d]/g, '') })}
+              />
               <input type="file" accept="image/*" className="dark:text-slate-300"
                 onChange={(e) => setEditForm({ ...editForm, photo: e.target.files?.[0] || null })} />
               {error && <p className="text-sm text-red-500">{error}</p>}

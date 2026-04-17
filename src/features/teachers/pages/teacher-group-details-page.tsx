@@ -1,14 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { api } from '@/api/axios';
 import { groupsApi } from '@/api/groups.api';
 import { lessonsApi } from '@/api/lesson.api';
 import { homeworkApi } from '@/api/homework.api';
 import { videosApi } from '@/api/videos.api';
 import { attendanceApi } from '@/api/attendance.api';
-import { studentGroupApi } from '@/api/students-group.api';
 import { formatDate, formatDateTime } from '@/lib/utils';
-import { Pencil, Plus, Trash2 } from 'lucide-react';
 
 type GroupDetails = {
     id: string;
@@ -59,17 +56,6 @@ type StatusRow = {
     resultId?: number;
 };
 
-type TeacherOption = {
-    id: string;
-    fullName: string;
-};
-
-type StudentOption = {
-    id: number;
-    fullName: string;
-    email?: string;
-};
-
 const weekdayLabel: Record<string, string> = {
     MON: 'Dushanba',
     TUE: 'Seshanba',
@@ -87,7 +73,7 @@ const statusLabels: Record<HomeworkStatusTab, string> = {
     APPROVED: 'Qabul qilingan',
 };
 
-const GroupDetailsPage = () => {
+const TeacherGroupDetailsPage = () => {
     const { id } = useParams();
     const navigate = useNavigate();
 
@@ -105,10 +91,6 @@ const GroupDetailsPage = () => {
     const [lessonForm, setLessonForm] = useState({ title: '' });
     const [lessonLoading, setLessonLoading] = useState(false);
 
-    const [showEditForm, setShowEditForm] = useState(false);
-    const [editName, setEditName] = useState('');
-    const [editLoading, setEditLoading] = useState(false);
-
     const [showHomeworkForm, setShowHomeworkForm] = useState(false);
     const [homeworkForm, setHomeworkForm] = useState<{ lessonId: string; title: string; file: File | null }>({
         lessonId: '',
@@ -123,16 +105,6 @@ const GroupDetailsPage = () => {
         file: null,
     });
     const [videoLoading, setVideoLoading] = useState(false);
-
-    const [showTeacherForm, setShowTeacherForm] = useState(false);
-    const [teacherOptions, setTeacherOptions] = useState<TeacherOption[]>([]);
-    const [selectedTeacherId, setSelectedTeacherId] = useState('');
-    const [teacherLoading, setTeacherLoading] = useState(false);
-
-    const [showStudentForm, setShowStudentForm] = useState(false);
-    const [studentOptions, setStudentOptions] = useState<StudentOption[]>([]);
-    const [selectedStudentId, setSelectedStudentId] = useState('');
-    const [studentLoading, setStudentLoading] = useState(false);
 
     const [selectedHomeworkId, setSelectedHomeworkId] = useState<number | null>(null);
     const [statusTab, setStatusTab] = useState<HomeworkStatusTab>('PENDING');
@@ -179,51 +151,6 @@ const GroupDetailsPage = () => {
         }
     };
 
-    const loadGroup = async () => {
-        if (!id) return;
-        try {
-            const res = await groupsApi.getById(id);
-            setGroup(res?.data || res || null);
-        } catch {
-            setError("Guruh ma'lumotlarini yangilashda xatolik");
-        }
-    };
-
-    useEffect(() => {
-        if (group?.name) {
-            setEditName(group.name);
-        }
-    }, [group?.name]);
-
-    const loadTeacherOptions = async () => {
-        try {
-            const res = await api.get('/teachers/all');
-            const list = res?.data?.data || res?.data || [];
-            setTeacherOptions(list.map((teacher: any) => ({ id: String(teacher.id), fullName: teacher.fullName })));
-        } catch {
-            setTeacherOptions([]);
-        }
-    };
-
-    const loadStudentOptions = async () => {
-        try {
-            const res = await api.get('/students/all?status=ACTIVE');
-            const list = res?.data?.data || res?.data || [];
-            const groupStudentIds = new Set((group?.students || []).map((student) => Number(student.id)));
-            setStudentOptions(
-                list
-                    .filter((student: any) => !groupStudentIds.has(Number(student.id)))
-                    .map((student: any) => ({
-                        id: Number(student.id),
-                        fullName: student.fullName,
-                        email: student.email,
-                    })),
-            );
-        } catch {
-            setStudentOptions([]);
-        }
-    };
-
     const handleCreateLesson = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         if (!id || !lessonForm.title.trim()) return;
@@ -237,72 +164,6 @@ const GroupDetailsPage = () => {
             setError(err?.response?.data?.message || "Dars yaratishda xatolik");
         } finally {
             setLessonLoading(false);
-        }
-    };
-
-    const openTeacherForm = async () => {
-        setError('');
-        setSelectedTeacherId('');
-        setShowTeacherForm(true);
-        await loadTeacherOptions();
-    };
-
-    const handleAssignTeacher = async () => {
-        if (!id || !selectedTeacherId) return;
-        setTeacherLoading(true);
-        setError('');
-        try {
-            await groupsApi.update(id, { teacherId: Number(selectedTeacherId) });
-            setShowTeacherForm(false);
-            setSelectedTeacherId('');
-            await loadGroup();
-        } catch (err: any) {
-            const message = err?.response?.data?.message;
-            setError(Array.isArray(message) ? message.join(', ') : message || "O'qituvchi qo'shishda xatolik");
-        } finally {
-            setTeacherLoading(false);
-        }
-    };
-
-    const openStudentForm = async () => {
-        setError('');
-        setSelectedStudentId('');
-        setShowStudentForm(true);
-        await loadStudentOptions();
-    };
-
-    const handleEditGroup = async (e: React.FormEvent<HTMLFormElement>) => {
-        e.preventDefault();
-        if (!id || !editName.trim()) return;
-        setEditLoading(true);
-        setError('');
-        try {
-            await groupsApi.update(id, { name: editName.trim() });
-            setShowEditForm(false);
-            await loadAll();
-        } catch (err: any) {
-            const message = err?.response?.data?.message;
-            setError(Array.isArray(message) ? message.join(', ') : message || 'Tahrirlashda xatolik');
-        } finally {
-            setEditLoading(false);
-        }
-    };
-
-    const handleAssignStudent = async () => {
-        if (!id || !selectedStudentId) return;
-        setStudentLoading(true);
-        setError('');
-        try {
-            await studentGroupApi.addStudent({ groupId: Number(id), studentId: Number(selectedStudentId) });
-            setShowStudentForm(false);
-            setSelectedStudentId('');
-            await loadGroup();
-            await loadStudentOptions();
-        } catch (err: any) {
-            const message = err?.response?.data?.message;
-            setError(Array.isArray(message) ? message.join(', ') : message || "O'quvchi qo'shishda xatolik");
-        } finally {
-            setStudentLoading(false);
         }
     };
 
@@ -400,7 +261,7 @@ const GroupDetailsPage = () => {
             setAttendanceData(res?.data || res || []);
             setAttendanceSaved(true);
         } catch (err: any) {
-            setError(err?.response?.data?.message || 'Davomatni saqlashda xatolik');
+            setError(err?.response?.data?.message || "Davomatni saqlashda xatolik");
         } finally {
             setSavingAttendance(false);
         }
@@ -471,8 +332,8 @@ const GroupDetailsPage = () => {
         return (
             <div className="space-y-3">
                 <button
-                    onClick={() => navigate('/admin/groups')}
-                    className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-100"
+                    onClick={() => navigate('/teacher/groups')}
+                    className="text-sm text-slate-500 hover:text-emerald-600"
                 >
                     Orqaga
                 </button>
@@ -487,7 +348,7 @@ const GroupDetailsPage = () => {
                 <div className="flex flex-wrap items-center justify-between gap-4">
                     <div>
                         <button
-                            onClick={() => navigate('/admin/groups')}
+                            onClick={() => navigate('/teacher/groups')}
                             className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-100"
                         >
                             Orqaga
@@ -498,32 +359,9 @@ const GroupDetailsPage = () => {
                         </div>
                         <p className="mt-1 text-sm text-slate-500">Kurs bo'yicha umumiy ma'lumot va monitoring.</p>
                     </div>
-                    <div className="flex flex-wrap items-center gap-2">
-                        <button className="rounded-full border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm font-medium text-emerald-700 transition hover:bg-emerald-100">
-                            Statistika
-                        </button>
-                        <button
-                            onClick={() => setShowEditForm(true)}
-                            className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:border-emerald-200 hover:text-emerald-700"
-                        >
-                            <Pencil size={14} /> Tahrirlash
-                        </button>
-                        <button
-                            onClick={openTeacherForm}
-                            className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:border-emerald-200 hover:text-emerald-700"
-                        >
-                            <Plus size={14} /> O'qituvchi qo'shish
-                        </button>
-                        <button
-                            onClick={openStudentForm}
-                            className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:border-emerald-200 hover:text-emerald-700"
-                        >
-                            <Plus size={14} /> O'quvchi qo'shish
-                        </button>
-                        <button className="rounded-full bg-rose-500 p-3 text-white transition hover:bg-rose-600">
-                            <Trash2 size={16} />
-                        </button>
-                    </div>
+                    <button className="rounded-full border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm font-medium text-emerald-700 transition hover:bg-emerald-100">
+                        Statistika
+                    </button>
                 </div>
             </div>
 
@@ -1052,7 +890,9 @@ const GroupDetailsPage = () => {
                                 className="w-full rounded-xl border px-4 py-3 text-sm outline-none focus:border-violet-400"
                                 placeholder="Dars mavzusini yozing"
                                 value={topic}
-                                onChange={(e) => setTopic(e.target.value)}
+                                onChange={(e) => {
+                                    setTopic(e.target.value);
+                                }}
                             />
                         </div>
 
@@ -1119,167 +959,6 @@ const GroupDetailsPage = () => {
                                 </div>
                             )
                         )}
-                    </div>
-                </div>
-            )}
-
-            {showEditForm && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 px-4">
-                    <form
-                        onSubmit={handleEditGroup}
-                        className="w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl"
-                    >
-                        <div className="mb-4 flex items-center justify-between">
-                            <h3 className="text-lg font-semibold text-slate-800">Guruhni tahrirlash</h3>
-                            <button
-                                type="button"
-                                onClick={() => setShowEditForm(false)}
-                                className="text-slate-500"
-                            >
-                                ✕
-                            </button>
-                        </div>
-
-                        <div className="space-y-4">
-                            <div>
-                                <label className="mb-2 block text-sm font-medium text-slate-600">Guruh nomi</label>
-                                <input
-                                    className="w-full rounded-2xl border border-slate-200 px-3 py-2 text-sm"
-                                    value={editName}
-                                    onChange={(e) => setEditName(e.target.value)}
-                                    placeholder="Guruh nomini kiriting"
-                                />
-                            </div>
-                        </div>
-
-                        {error && <p className="mt-4 text-sm text-red-500">{error}</p>}
-
-                        <div className="mt-6 flex justify-end gap-3">
-                            <button
-                                type="button"
-                                onClick={() => setShowEditForm(false)}
-                                className="rounded-full border border-slate-200 px-4 py-2 text-sm"
-                            >
-                                Bekor qilish
-                            </button>
-                            <button
-                                type="submit"
-                                disabled={editLoading || !editName.trim()}
-                                className="rounded-full bg-emerald-600 px-4 py-2 text-sm text-white disabled:cursor-not-allowed disabled:opacity-50"
-                            >
-                                {editLoading ? 'Saqlanmoqda...' : 'Saqlash'}
-                            </button>
-                        </div>
-                    </form>
-                </div>
-            )}
-
-            {showTeacherForm && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 px-4">
-                    <div className="w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl">
-                        <div className="mb-4 flex items-center justify-between">
-                            <h3 className="text-lg font-semibold text-slate-800">O'qituvchi qo'shish</h3>
-                            <button
-                                type="button"
-                                onClick={() => setShowTeacherForm(false)}
-                                className="text-slate-500"
-                            >
-                                ✕
-                            </button>
-                        </div>
-
-                        <div className="space-y-4">
-                            <div>
-                                <label className="mb-2 block text-sm font-medium text-slate-600">O'qituvchi</label>
-                                <select
-                                    className="w-full rounded-2xl border border-slate-200 px-3 py-2 text-sm"
-                                    value={selectedTeacherId}
-                                    onChange={(e) => setSelectedTeacherId(e.target.value)}
-                                >
-                                    <option value="">O'qituvchini tanlang</option>
-                                    {teacherOptions.map((teacher) => (
-                                        <option key={teacher.id} value={teacher.id}>
-                                            {teacher.fullName}
-                                        </option>
-                                    ))}
-                                </select>
-                            </div>
-                        </div>
-
-                        {error && <p className="mt-4 text-sm text-red-500">{error}</p>}
-
-                        <div className="mt-6 flex justify-end gap-3">
-                            <button
-                                type="button"
-                                onClick={() => setShowTeacherForm(false)}
-                                className="rounded-full border border-slate-200 px-4 py-2 text-sm"
-                            >
-                                Bekor qilish
-                            </button>
-                            <button
-                                type="button"
-                                onClick={handleAssignTeacher}
-                                disabled={teacherLoading || !selectedTeacherId}
-                                className="rounded-full bg-emerald-600 px-4 py-2 text-sm text-white disabled:cursor-not-allowed disabled:opacity-50"
-                            >
-                                {teacherLoading ? "Qo'shilmoqda..." : "Qo'shish"}
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {showStudentForm && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 px-4">
-                    <div className="w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl">
-                        <div className="mb-4 flex items-center justify-between">
-                            <h3 className="text-lg font-semibold text-slate-800">O'quvchi qo'shish</h3>
-                            <button
-                                type="button"
-                                onClick={() => setShowStudentForm(false)}
-                                className="text-slate-500"
-                            >
-                                ✕
-                            </button>
-                        </div>
-
-                        <div className="space-y-4">
-                            <div>
-                                <label className="mb-2 block text-sm font-medium text-slate-600">O'quvchi</label>
-                                <select
-                                    className="w-full rounded-2xl border border-slate-200 px-3 py-2 text-sm"
-                                    value={selectedStudentId}
-                                    onChange={(e) => setSelectedStudentId(e.target.value)}
-                                >
-                                    <option value="">O'quvchini tanlang</option>
-                                    {studentOptions.map((student) => (
-                                        <option key={student.id} value={student.id}>
-                                            {student.fullName}{student.email ? ` — ${student.email}` : ''}
-                                        </option>
-                                    ))}
-                                </select>
-                            </div>
-                        </div>
-
-                        {error && <p className="mt-4 text-sm text-red-500">{error}</p>}
-
-                        <div className="mt-6 flex justify-end gap-3">
-                            <button
-                                type="button"
-                                onClick={() => setShowStudentForm(false)}
-                                className="rounded-full border border-slate-200 px-4 py-2 text-sm"
-                            >
-                                Bekor qilish
-                            </button>
-                            <button
-                                type="button"
-                                onClick={handleAssignStudent}
-                                disabled={studentLoading || !selectedStudentId}
-                                className="rounded-full bg-indigo-600 px-4 py-2 text-sm text-white disabled:cursor-not-allowed disabled:opacity-50"
-                            >
-                                {studentLoading ? "Qo'shilmoqda..." : "Qo'shish"}
-                            </button>
-                        </div>
                     </div>
                 </div>
             )}
@@ -1440,4 +1119,4 @@ const GroupDetailsPage = () => {
     );
 };
 
-export default GroupDetailsPage;
+export default TeacherGroupDetailsPage;

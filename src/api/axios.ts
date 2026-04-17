@@ -2,7 +2,7 @@ import axios from 'axios';
 
 const baseURL =
   import.meta.env.VITE_API_URL?.trim() ||
-  'https://crm-backend-w2lx.onrender.com/api';
+  'http://localhost:3000/api';
 
 export const api = axios.create({
   baseURL,
@@ -25,6 +25,7 @@ api.interceptors.response.use(
     if (error?.response?.status === 401) {
       localStorage.removeItem('accessToken');
       localStorage.removeItem('user');
+      localStorage.removeItem('role');
       if (!window.location.pathname.includes('/login')) {
         window.location.href = '/login';
       }

@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import { studentsApi, type StudentPayload } from '@/api/students.api';
 import { formatDate } from '@/lib/utils';
-import { Pencil, Trash2 } from 'lucide-react';
+import { Eye, EyeOff, Pencil, Trash2 } from 'lucide-react';
+import { useSearchParams } from 'react-router-dom';
 
 type Student = {
   id: number;
@@ -11,6 +12,7 @@ type Student = {
   birth_date: string;
   status: string;
   created_at: string;
+  adminPassword?: string;
 };
 
 const initialForm: StudentPayload = {
@@ -21,7 +23,45 @@ const initialForm: StudentPayload = {
   photo: null,
 };
 
+const STUDENT_PASSWORDS_STORAGE_KEY = 'crm-admin-student-passwords';
+
+const loadStudentPasswords = (): Record<string, string> => {
+  try {
+    const raw = localStorage.getItem(STUDENT_PASSWORDS_STORAGE_KEY);
+    if (!raw) return {};
+
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== 'object') return {};
+
+    return Object.fromEntries(
+      Object.entries(parsed).filter(([, value]) => typeof value === 'string'),
+    ) as Record<string, string>;
+  } catch {
+    return {};
+  }
+};
+
+const saveStudentPasswords = (store: Record<string, string>) => {
+  localStorage.setItem(STUDENT_PASSWORDS_STORAGE_KEY, JSON.stringify(store));
+};
+
+const setStudentPassword = (id: number, password: string) => {
+  const trimmed = password.trim();
+  const store = loadStudentPasswords();
+
+  if (!trimmed) {
+    delete store[String(id)];
+  } else {
+    store[String(id)] = trimmed;
+  }
+
+  saveStudentPasswords(store);
+};
+
 export default function StudentsPage() {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const statusFilter = (searchParams.get('status') || '').toUpperCase();
+
   const [students, setStudents] = useState<Student[]>([]);
   const [search, setSearch] = useState('');
   const [open, setOpen] = useState(false);
@@ -31,18 +71,28 @@ export default function StudentsPage() {
   const [submitting, setSubmitting] = useState(false);
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [editStudent, setEditStudent] = useState<Student | null>(null);
+  const [showCreatePassword, setShowCreatePassword] = useState(true);
+  const [showPassword, setShowPassword] = useState(true);
   const [form, setForm] = useState<StudentPayload>(initialForm);
   const [editForm, setEditForm] = useState<Partial<StudentPayload>>({
     fullName: '',
     email: '',
     birthDate: '',
+    password: '',
   });
 
   const fetchStudents = async () => {
     try {
       setLoading(true);
-      const res = await studentsApi.list();
-      setStudents(res?.data || res || []);
+      const res = await studentsApi.list(statusFilter || undefined);
+      const rows: Student[] = res?.data || res || [];
+      const storedPasswords = loadStudentPasswords();
+      setStudents(
+        rows.map((student) => ({
+          ...student,
+          adminPassword: storedPasswords[String(student.id)] || '',
+        })),
+      );
     } finally {
       setLoading(false);
     }
@@ -50,14 +100,19 @@ export default function StudentsPage() {
 
   useEffect(() => {
     fetchStudents();
-  }, []);
+  }, [statusFilter]);
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setSubmitting(true);
     try {
-      await studentsApi.create(form);
+      const res = await studentsApi.create(form);
+      const createdId = Number(res?.data?.id);
+      if (Number.isFinite(createdId) && form.password.trim()) {
+        setStudentPassword(createdId, form.password);
+      }
+
       setOpen(false);
       setForm(initialForm);
       fetchStudents();
@@ -84,10 +139,12 @@ export default function StudentsPage() {
 
   const openEdit = (student: Student) => {
     setEditStudent(student);
+    setShowPassword(false);
     setEditForm({
       fullName: student.fullName,
       email: student.email,
       birthDate: student.birth_date?.split('T')[0] || '',
+      password: student.adminPassword || '',
     });
     setEditOpen(true);
   };
@@ -98,7 +155,23 @@ export default function StudentsPage() {
     setError('');
     setSubmitting(true);
     try {
-      await studentsApi.update(String(editStudent.id), editForm);
+      const payload: Partial<StudentPayload> = {
+        fullName: editForm.fullName,
+        email: editForm.email,
+        birthDate: editForm.birthDate,
+        photo: editForm.photo,
+      };
+
+      const nextPassword = String(editForm.password || '').trim();
+      if (nextPassword) {
+        payload.password = nextPassword;
+      }
+
+      await studentsApi.update(String(editStudent.id), payload);
+      if (nextPassword) {
+        setStudentPassword(editStudent.id, nextPassword);
+      }
+
       setEditOpen(false);
       setEditStudent(null);
       fetchStudents();
@@ -116,6 +189,25 @@ export default function StudentsPage() {
       s.email.toLowerCase().includes(search.toLowerCase())
   );
 
+  const setFilter = (nextFilter: '' | 'ACTIVE' | 'FREEZE') => {
+    if (!nextFilter) {
+      setSearchParams({});
+      return;
+    }
+    setSearchParams({ status: nextFilter });
+  };
+
+  const getStatusBadgeClass = (status: string) => {
+    const normalized = String(status).toUpperCase();
+    if (normalized === 'ACTIVE') {
+      return 'bg-green-100 text-green-700';
+    }
+    if (normalized === 'FREEZE' || normalized === 'INACTIVE') {
+      return 'bg-amber-100 text-amber-700';
+    }
+    return 'bg-slate-100 text-slate-700';
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -123,6 +215,33 @@ export default function StudentsPage() {
         <h1 className="text-3xl font-bold dark:text-white">Talabalar</h1>
         <button onClick={() => setOpen(true)} className="rounded-xl bg-violet-600 px-4 py-3 text-white">
           Talaba qo'shish
+        </button>
+      </div>
+
+      <div className="flex flex-wrap items-center gap-2">
+        <button
+          type="button"
+          onClick={() => setFilter('')}
+          className={`rounded-xl px-4 py-2 text-sm font-medium transition ${!statusFilter ? 'bg-violet-600 text-white' : 'bg-white text-slate-600 hover:bg-slate-100'
+            }`}
+        >
+          Barchasi
+        </button>
+        <button
+          type="button"
+          onClick={() => setFilter('ACTIVE')}
+          className={`rounded-xl px-4 py-2 text-sm font-medium transition ${statusFilter === 'ACTIVE' ? 'bg-violet-600 text-white' : 'bg-white text-slate-600 hover:bg-slate-100'
+            }`}
+        >
+          Faol talabalar
+        </button>
+        <button
+          type="button"
+          onClick={() => setFilter('FREEZE')}
+          className={`rounded-xl px-4 py-2 text-sm font-medium transition ${statusFilter === 'FREEZE' ? 'bg-violet-600 text-white' : 'bg-white text-slate-600 hover:bg-slate-100'
+            }`}
+        >
+          Muzlatilgan talabalar
         </button>
       </div>
 
@@ -156,48 +275,56 @@ export default function StudentsPage() {
                 </tr>
               </thead>
               <tbody>
-                {filtered.map((item) => (
-                  <tr key={item.id} className="border-b dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700">
-                    <td className="py-3 font-medium text-slate-400 dark:text-slate-500">#{item.id}</td>
-                    <td className="py-3 dark:text-white">
-                      <div className="flex items-center gap-2">
-                        {item.photo ? (
-                          <img src={item.photo} className="h-8 w-8 rounded-full object-cover" />
-                        ) : (
-                          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-violet-100 text-sm font-medium text-violet-600">
-                            {item.fullName[0]}
-                          </div>
-                        )}
-                        {item.fullName}
-                      </div>
-                    </td>
-                    <td className="py-3 dark:text-slate-300">{item.email}</td>
-                    <td className="py-3 dark:text-slate-300">{formatDate(item.birth_date)}</td>
-                    <td className="py-3">
-                      <span className="rounded-full bg-green-100 px-3 py-1 text-xs text-green-700">
-                        {item.status}
-                      </span>
-                    </td>
-                    <td className="py-3 dark:text-slate-300">{formatDate(item.created_at)}</td>
-                    <td className="py-3">
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => openEdit(item)}
-                          className="flex items-center gap-1 rounded-lg border border-blue-200 px-3 py-1 text-sm text-blue-500 hover:bg-blue-50 dark:border-blue-800 dark:hover:bg-blue-900/30"
-                        >
-                          <Pencil size={14} /> Tahrirlash
-                        </button>
-                        <button
-                          onClick={() => handleDelete(item.id)}
-                          disabled={deleteId === item.id}
-                          className="flex items-center gap-1 rounded-lg border border-red-200 px-3 py-1 text-sm text-red-500 hover:bg-red-50 dark:border-red-800 dark:hover:bg-red-900/30 disabled:opacity-50"
-                        >
-                          <Trash2 size={14} /> {deleteId === item.id ? '...' : "O'chirish"}
-                        </button>
-                      </div>
+                {filtered.length === 0 ? (
+                  <tr>
+                    <td colSpan={7} className="py-10 text-center text-slate-500 dark:text-slate-400">
+                      Tanlangan filter bo'yicha talabalar topilmadi
                     </td>
                   </tr>
-                ))}
+                ) : (
+                  filtered.map((item) => (
+                    <tr key={item.id} className="border-b dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700">
+                      <td className="py-3 font-medium text-slate-400 dark:text-slate-500">#{item.id}</td>
+                      <td className="py-3 dark:text-white">
+                        <div className="flex items-center gap-2">
+                          {item.photo ? (
+                            <img src={item.photo} className="h-8 w-8 rounded-full object-cover" />
+                          ) : (
+                            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-violet-100 text-sm font-medium text-violet-600">
+                              {item.fullName[0]}
+                            </div>
+                          )}
+                          {item.fullName}
+                        </div>
+                      </td>
+                      <td className="py-3 dark:text-slate-300">{item.email}</td>
+                      <td className="py-3 dark:text-slate-300">{formatDate(item.birth_date)}</td>
+                      <td className="py-3">
+                        <span className={`rounded-full px-3 py-1 text-xs ${getStatusBadgeClass(item.status)}`}>
+                          {item.status}
+                        </span>
+                      </td>
+                      <td className="py-3 dark:text-slate-300">{formatDate(item.created_at)}</td>
+                      <td className="py-3">
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => openEdit(item)}
+                            className="flex items-center gap-1 rounded-lg border border-blue-200 px-3 py-1 text-sm text-blue-500 hover:bg-blue-50 dark:border-blue-800 dark:hover:bg-blue-900/30"
+                          >
+                            <Pencil size={14} /> Tahrirlash
+                          </button>
+                          <button
+                            onClick={() => handleDelete(item.id)}
+                            disabled={deleteId === item.id}
+                            className="flex items-center gap-1 rounded-lg border border-red-200 px-3 py-1 text-sm text-red-500 hover:bg-red-50 dark:border-red-800 dark:hover:bg-red-900/30 disabled:opacity-50"
+                          >
+                            <Trash2 size={14} /> {deleteId === item.id ? '...' : "O'chirish"}
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>
@@ -218,8 +345,23 @@ export default function StudentsPage() {
                 value={form.fullName} onChange={(e) => setForm({ ...form, fullName: e.target.value })} />
               <input className="w-full rounded-xl border px-4 py-3 dark:bg-slate-700 dark:border-slate-600 dark:text-white dark:placeholder-slate-400" placeholder="Email"
                 value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
-              <input type="password" className="w-full rounded-xl border px-4 py-3 dark:bg-slate-700 dark:border-slate-600 dark:text-white dark:placeholder-slate-400" placeholder="Parol"
-                value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} />
+              <div className="relative">
+                <input
+                  type={showCreatePassword ? 'text' : 'password'}
+                  className="w-full rounded-xl border px-4 py-3 pr-12 dark:bg-slate-700 dark:border-slate-600 dark:text-white dark:placeholder-slate-400"
+                  placeholder="Parol"
+                  value={form.password}
+                  onChange={(e) => setForm({ ...form, password: e.target.value })}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowCreatePassword((prev) => !prev)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 transition hover:text-slate-600 dark:hover:text-slate-200"
+                  aria-label="Parolni ko'rsatish yoki yashirish"
+                >
+                  {showCreatePassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              </div>
               <div>
                 <label className="mb-1 block text-sm font-medium dark:text-slate-300">Tug'ilgan sana</label>
                 <input type="date" className="w-full rounded-xl border px-4 py-3 dark:bg-slate-700 dark:border-slate-600 dark:text-white"
@@ -254,6 +396,29 @@ export default function StudentsPage() {
                 value={editForm.fullName} onChange={(e) => setEditForm({ ...editForm, fullName: e.target.value })} />
               <input className="w-full rounded-xl border px-4 py-3 dark:bg-slate-700 dark:border-slate-600 dark:text-white dark:placeholder-slate-400" placeholder="Email"
                 value={editForm.email} onChange={(e) => setEditForm({ ...editForm, email: e.target.value })} />
+              <div>
+                <label className="mb-1 block text-sm font-medium dark:text-slate-300">Parol</label>
+                <div className="relative">
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    className="w-full rounded-xl border px-4 py-3 pr-12 dark:bg-slate-700 dark:border-slate-600 dark:text-white dark:placeholder-slate-400"
+                    placeholder="Parol kiriting"
+                    value={editForm.password || ''}
+                    onChange={(e) => setEditForm({ ...editForm, password: e.target.value })}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((prev) => !prev)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 transition hover:text-slate-600 dark:hover:text-slate-200"
+                    aria-label="Parolni ko'rsatish yoki yashirish"
+                  >
+                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                </div>
+                <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                  Admin shu maydonda parolni qo'lda o'rnatadi va brauzerda eslab qolinadi.
+                </p>
+              </div>
               <div>
                 <label className="mb-1 block text-sm font-medium dark:text-slate-300">Tug'ilgan sana</label>
                 <input type="date" className="w-full rounded-xl border px-4 py-3 dark:bg-slate-700 dark:border-slate-600 dark:text-white"

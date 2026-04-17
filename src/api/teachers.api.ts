@@ -43,4 +43,21 @@ export const teachersApi = {
     const { data } = await api.delete(`/teachers/${id}`);
     return data;
   },
+  async resetPassword(id: string) {
+    const { data } = await api.post(`/teachers/${id}/reset-password`);
+    return data;
+  },
+
+  async myGroups() {
+    const { data } = await api.get('/teachers/my/groups');
+    return data;
+  },
+  async myProfile() {
+    const { data } = await api.get('/teachers/me');
+    return data;
+  },
+  async resetMyPassword() {
+    const { data } = await api.post('/teachers/me/reset-password');
+    return data;
+  },
 };

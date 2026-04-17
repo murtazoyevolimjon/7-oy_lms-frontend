@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { employeesApi } from '@/api/employees.api';
 import { formatDate } from '@/lib/utils';
-import { Pencil, Trash2 } from 'lucide-react';
+import { Eye, EyeOff, Pencil, Trash2 } from 'lucide-react';
 
 type Employee = {
   id: string;
@@ -35,6 +35,7 @@ export default function EmployeesPage() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [showCreatePassword, setShowCreatePassword] = useState(true);
 
   const [form, setForm] = useState<FormState>({
     fullName: '', email: '', password: '', position: '', hire_date: '', role: '', photo: null,
@@ -218,8 +219,23 @@ export default function EmployeesPage() {
               </div>
               <div>
                 <label className={labelCls}>Parol</label>
-                <input type="password" className={inputCls} placeholder="Parol"
-                  value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} />
+                <div className="relative">
+                  <input
+                    type={showCreatePassword ? 'text' : 'password'}
+                    className={`${inputCls} pr-12`}
+                    placeholder="Parol"
+                    value={form.password}
+                    onChange={(e) => setForm({ ...form, password: e.target.value })}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowCreatePassword((prev) => !prev)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 transition hover:text-gray-600 dark:hover:text-gray-200"
+                    aria-label="Parolni ko'rsatish yoki yashirish"
+                  >
+                    {showCreatePassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                </div>
               </div>
               <div>
                 <label className={labelCls}>Rasm</label>

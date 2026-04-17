@@ -9,8 +9,9 @@ export type StudentPayload = {
 };
 
 export const studentsApi = {
-  async list() {
-    const { data } = await api.get('/students/all');
+  async list(status?: string) {
+    const query = status ? `?status=${encodeURIComponent(status)}` : '';
+    const { data } = await api.get(`/students/all${query}`);
     return data;
   },
 
@@ -33,6 +34,7 @@ export const studentsApi = {
 
     if (payload.fullName) formData.append('fullName', payload.fullName);
     if (payload.email) formData.append('email', payload.email);
+    if (payload.password) formData.append('password', payload.password);
     if (payload.birthDate) formData.append('birth_date', payload.birthDate); // ✅ to'g'irlandi
     if (payload.photo instanceof File) formData.append('photo', payload.photo);
 
@@ -44,6 +46,38 @@ export const studentsApi = {
 
   async remove(id: string) {
     const { data } = await api.delete(`/students/${id}`);
+    return data;
+  },
+
+  async resetPassword(id: string) {
+    const { data } = await api.post(`/students/${id}/reset-password`);
+    return data;
+  },
+
+  async myGroups() {
+    const { data } = await api.get('/students/my/groups');
+    return data;
+  },
+
+  async myDashboard() {
+    const { data } = await api.get('/students/my/dashboard');
+    return data;
+  },
+
+  async myLessons(groupId: number) {
+    const { data } = await api.get(`/students/my/lessons/${groupId}`);
+    return data;
+  },
+
+  async myGroupHomework(groupId: number, lessonId: number) {
+    const { data } = await api.get(`/students/my/group/homework/${groupId}`, {
+      params: { lessonId },
+    });
+    return data;
+  },
+
+  async myGroupVideos(groupId: number) {
+    const { data } = await api.get(`/students/my/group/lessonVideo/${groupId}`);
     return data;
   },
 };

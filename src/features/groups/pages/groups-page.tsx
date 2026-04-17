@@ -242,7 +242,7 @@ export default function GroupsPage() {
                       </span>
                     </td>
                     <td className="py-3">
-                      <Link to={`/groups/${group.id}`} className="font-medium text-violet-600 hover:underline dark:text-violet-400">
+                      <Link to={`/admin/groups/${group.id}`} className="font-medium text-violet-600 hover:underline dark:text-violet-400">
                         {group.name}
                       </Link>
                     </td>
