@@ -55,7 +55,12 @@ const initialForm: GroupPayload = {
 
 export default function GroupsPage() {
   const [groups, setGroups] = useState<Group[]>([]);
-  const [stats, setStats] = useState({ totalGroups: 0, teachersCount: 0, studentsCount: 0 });
+  const [stats, setStats] = useState({
+    totalGroups: 0,
+    teachersCount: 0,
+    studentsCount: 0,
+    addedStudentsCount: 0,
+  });
   const [open, setOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [editGroup, setEditGroup] = useState<Group | null>(null);
@@ -88,17 +93,16 @@ export default function GroupsPage() {
   };
 
   const load = async () => {
-    const [groupsRes, coursesRes, roomsRes, teachersRes, statsRes] = await Promise.all([
+    const [groupsRes, coursesRes, roomsRes, teachersRes, studentsRes] = await Promise.all([
       groupsApi.list(),
       coursesApi.list().catch(() => []),
       roomsApi.list().catch(() => ({ data: [] })),
       api.get('/teachers/all').catch(() => ({ data: [] })),
-      api.get('/dashboard/group-stats').catch(() => ({
-        data: { totalGroups: 0, teachersCount: 0, studentsCount: 0 },
-      })),
+      api.get('/students/all?status=ACTIVE').catch(() => ({ data: [] })),
     ]);
 
-    setGroups(groupsRes?.data || groupsRes || []);
+    const groupsList = groupsRes?.data || groupsRes || [];
+    setGroups(groupsList);
     setCourses(Array.isArray(coursesRes) ? coursesRes : (coursesRes?.data ?? []));
     const roomsList = roomsRes?.data || roomsRes || [];
     setRooms(Array.isArray(roomsList) ? roomsList : []);
@@ -108,10 +112,63 @@ export default function GroupsPage() {
         name: x.fullName,
       }))
     );
-    setStats(statsRes.data || { totalGroups: 0, teachersCount: 0, studentsCount: 0 });
+
+    const teacherNames = new Set(
+      (groupsList as Group[])
+        .map((group) => (group.teacherName || '').trim())
+        .filter((name) => Boolean(name))
+        .map((name) => name.toLowerCase()),
+    );
+
+    const addedStudentsCount = (groupsList as Group[]).reduce(
+      (sum, group) => sum + Number(group.studentsCount || 0),
+      0,
+    );
+
+    const activeStudentsList = studentsRes?.data?.data || studentsRes?.data || [];
+    const studentsCount = Array.isArray(activeStudentsList) ? activeStudentsList.length : 0;
+
+    setStats({
+      totalGroups: Array.isArray(groupsList) ? groupsList.length : 0,
+      teachersCount: teacherNames.size,
+      studentsCount,
+      addedStudentsCount,
+    });
   };
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    const ACTIVE_INTERVAL_MS = 5000;
+    const BACKGROUND_INTERVAL_MS = 30000;
+    let timeoutId: number | null = null;
+
+    const getDelay = () => (document.hidden ? BACKGROUND_INTERVAL_MS : ACTIVE_INTERVAL_MS);
+
+    const scheduleNext = () => {
+      if (timeoutId) {
+        window.clearTimeout(timeoutId);
+      }
+
+      timeoutId = window.setTimeout(async () => {
+        await load();
+        scheduleNext();
+      }, getDelay());
+    };
+
+    const handleVisibilityChange = () => {
+      scheduleNext();
+    };
+
+    load();
+    scheduleNext();
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      if (timeoutId) {
+        window.clearTimeout(timeoutId);
+      }
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, []);
 
   useEffect(() => {
     const handleClick = (e: MouseEvent) => {
@@ -191,7 +248,7 @@ export default function GroupsPage() {
       </div>
 
       {/* Stats */}
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         {/* ✅ TUZATILDI: dark modeda karta rangi */}
         <div className="rounded-2xl border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-800">
           <p className="text-sm text-slate-500 dark:text-slate-400">Jami guruhlar</p>
@@ -204,6 +261,10 @@ export default function GroupsPage() {
         <div className="rounded-2xl border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-800">
           <p className="text-sm text-slate-500 dark:text-slate-400">Talabalar</p>
           <h3 className="mt-3 text-4xl font-bold text-gray-900 dark:text-white">{stats.studentsCount}</h3>
+        </div>
+        <div className="rounded-2xl border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-800">
+          <p className="text-sm text-slate-500 dark:text-slate-400">Qo'shilgan o'quvchilar</p>
+          <h3 className="mt-3 text-4xl font-bold text-gray-900 dark:text-white">{stats.addedStudentsCount}</h3>
         </div>
       </div>
 

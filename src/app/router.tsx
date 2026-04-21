@@ -11,6 +11,7 @@ import StudentDashboardPage from '../features/student/pages/student-dashboard-pa
 import StudentProfilePage from '@/features/student/pages/student-profile-page';
 import StudentGroupsPage from '@/features/student/pages/student-groups-page';
 import StudentGroupDetailsPage from '@/features/student/pages/student-group-details-page';
+import { StudentPaymentsPage } from '@/features/payments/pages/student-payments-page';
 import TeacherGroupDetailsPage from '@/features/teachers/pages/teacher-group-details-page';
 import StudentsPage from '@/features/students/pages/students-page';
 import TeachersPage from '@/features/teachers/pages/teachers-page';
@@ -71,6 +72,7 @@ export const router = createBrowserRouter(
       children: [
         { index: true, element: <Navigate to="dashboard" replace /> },
         { path: 'dashboard', element: <StudentDashboardPage /> },
+        { path: 'payments', element: <StudentPaymentsPage /> },
         { path: 'groups', element: <StudentGroupsPage /> },
         { path: 'groups/:id', element: <StudentGroupDetailsPage /> },
         { path: 'profile', element: <StudentProfilePage /> },

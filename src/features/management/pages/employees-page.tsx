@@ -8,6 +8,7 @@ type Employee = {
   fullName: string;
   role: string;
   email: string;
+  password?: string;
   created_at: string;
   status?: string;
 };
@@ -36,13 +37,14 @@ export default function EmployeesPage() {
   const [loading, setLoading] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [showCreatePassword, setShowCreatePassword] = useState(true);
+  const [showEditPassword, setShowEditPassword] = useState(true);
 
   const [form, setForm] = useState<FormState>({
     fullName: '', email: '', password: '', position: '', hire_date: '', role: '', photo: null,
   });
 
   const [editForm, setEditForm] = useState<Partial<FormState>>({
-    fullName: '', email: '', position: '', role: '',
+    fullName: '', email: '', position: '', role: '', password: '',
   });
 
   const load = async () => {
@@ -51,6 +53,13 @@ export default function EmployeesPage() {
   };
 
   useEffect(() => { load(); }, []);
+
+  const parseApiError = (err: any, fallback = 'Xato yuz berdi') => {
+    const raw = err?.response?.data?.message ?? err?.message;
+    if (Array.isArray(raw)) return raw.join(', ');
+    if (typeof raw === 'string') return raw;
+    return fallback;
+  };
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -62,8 +71,7 @@ export default function EmployeesPage() {
       setForm({ fullName: '', email: '', password: '', position: '', hire_date: '', role: '', photo: null });
       load();
     } catch (err: any) {
-      const message = err?.response?.data?.message;
-      setError(Array.isArray(message) ? message.join(', ') : message || 'Xato yuz berdi');
+      setError(parseApiError(err, 'Xodim yaratishda xato'));
     } finally {
       setLoading(false);
     }
@@ -84,7 +92,8 @@ export default function EmployeesPage() {
 
   const openEdit = (employee: Employee) => {
     setEditEmployee(employee);
-    setEditForm({ fullName: employee.fullName, email: employee.email, role: employee.role });
+    setEditForm({ fullName: employee.fullName, email: employee.email, role: employee.role, password: '' });
+    setShowEditPassword(true);
     setEditOpen(true);
   };
 
@@ -99,8 +108,7 @@ export default function EmployeesPage() {
       setEditEmployee(null);
       load();
     } catch (err: any) {
-      const message = err?.response?.data?.message;
-      setError(Array.isArray(message) ? message.join(', ') : message || 'Xato yuz berdi');
+      setError(parseApiError(err, 'Xodimni tahrirlashda xato'));
     } finally {
       setLoading(false);
     }
@@ -297,6 +305,28 @@ export default function EmployeesPage() {
                   {ROLES.map((r) => <option key={r} value={r}>{r}</option>)}
                 </select>
               </div>
+              {editEmployee.role === 'SUPERADMIN' && (
+                <div>
+                  <label className={labelCls}>Parol</label>
+                  <div className="relative">
+                    <input
+                      type={showEditPassword ? 'text' : 'password'}
+                      className={`${inputCls} pr-12`}
+                      placeholder="Yangi parol kiriting"
+                      value={editForm.password || ''}
+                      onChange={(e) => setEditForm({ ...editForm, password: e.target.value })}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowEditPassword((prev) => !prev)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 transition hover:text-gray-600 dark:hover:text-gray-200"
+                      aria-label="Parolni ko'rsatish yoki yashirish"
+                    >
+                      {showEditPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                    </button>
+                  </div>
+                </div>
+              )}
               <div>
                 <label className={labelCls}>Rasm</label>
                 <input

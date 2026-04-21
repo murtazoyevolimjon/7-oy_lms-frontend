@@ -73,6 +73,7 @@ export default function StudentsPage() {
   const [editStudent, setEditStudent] = useState<Student | null>(null);
   const [showCreatePassword, setShowCreatePassword] = useState(true);
   const [showPassword, setShowPassword] = useState(true);
+  const [visiblePasswordIds, setVisiblePasswordIds] = useState<Record<number, boolean>>({});
   const [form, setForm] = useState<StudentPayload>(initialForm);
   const [editForm, setEditForm] = useState<Partial<StudentPayload>>({
     fullName: '',
@@ -139,7 +140,7 @@ export default function StudentsPage() {
 
   const openEdit = (student: Student) => {
     setEditStudent(student);
-    setShowPassword(false);
+    setShowPassword(true);
     setEditForm({
       fullName: student.fullName,
       email: student.email,
@@ -268,6 +269,7 @@ export default function StudentsPage() {
                   <th className="py-3">ID</th>
                   <th className="py-3">Nomi</th>
                   <th className="py-3">Email</th>
+                  <th className="py-3">Parol</th>
                   <th className="py-3">Tug'ilgan sana</th>
                   <th className="py-3">Status</th>
                   <th className="py-3">Yaratilgan sana</th>
@@ -298,6 +300,21 @@ export default function StudentsPage() {
                         </div>
                       </td>
                       <td className="py-3 dark:text-slate-300">{item.email}</td>
+                      <td className="py-3">
+                        <div className="flex items-center gap-2">
+                          <span className="rounded-full bg-slate-100 px-3 py-1 text-xs text-slate-600 dark:bg-slate-700 dark:text-slate-300">
+                            {visiblePasswordIds[item.id] ? item.adminPassword || 'Saqlanmagan' : '••••••••'}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => setVisiblePasswordIds((prev) => ({ ...prev, [item.id]: !prev[item.id] }))}
+                            className="rounded-full border border-slate-200 p-2 text-slate-500 transition hover:bg-slate-50 hover:text-slate-700 dark:border-slate-600 dark:hover:bg-slate-700 dark:hover:text-slate-100"
+                            aria-label="Parolni ko'rsatish yoki yashirish"
+                          >
+                            {visiblePasswordIds[item.id] ? <EyeOff size={14} /> : <Eye size={14} />}
+                          </button>
+                        </div>
+                      </td>
                       <td className="py-3 dark:text-slate-300">{formatDate(item.birth_date)}</td>
                       <td className="py-3">
                         <span className={`rounded-full px-3 py-1 text-xs ${getStatusBadgeClass(item.status)}`}>

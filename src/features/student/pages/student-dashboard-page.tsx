@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
-import { ChevronLeft, ChevronRight, Clock3 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Clock3, CreditCard } from 'lucide-react';
 import { studentsApi } from '@/api/students.api';
+import { PaymentModal } from '@/features/payments/components/payment-modal';
+import { authStore } from '@/features/auth/store/auth.store';
 
 type ScheduleItem = {
     id: string;
@@ -21,12 +23,16 @@ const toDateKey = (date: Date) => {
 };
 
 export default function StudentDashboardPage() {
+    const user = authStore.getUser();
+    const studentId = Number(user?.id || 0);
     const [currentMonth, setCurrentMonth] = useState(() => {
         const now = new Date();
         return new Date(now.getFullYear(), now.getMonth(), 1);
     });
     const [selectedDay, setSelectedDay] = useState(() => new Date());
     const [schedules, setSchedules] = useState<ScheduleItem[]>([]);
+    const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
+    const [studentGroupId, setStudentGroupId] = useState<number>(1);
 
     useEffect(() => {
         const load = async () => {
@@ -49,6 +55,23 @@ export default function StudentDashboardPage() {
         };
 
         load();
+    }, []);
+
+    useEffect(() => {
+        const loadMyGroups = async () => {
+            try {
+                const res = await studentsApi.myGroups();
+                const groups = Array.isArray(res) ? res : (res?.data ?? []);
+                const firstGroupId = Number(groups?.[0]?.groupId || groups?.[0]?.id || 1);
+                if (Number.isFinite(firstGroupId) && firstGroupId > 0) {
+                    setStudentGroupId(firstGroupId);
+                }
+            } catch {
+                setStudentGroupId(1);
+            }
+        };
+
+        loadMyGroups();
     }, []);
 
     const calendarDays = useMemo(() => {
@@ -92,19 +115,38 @@ export default function StudentDashboardPage() {
     };
 
     return (
-        <div className="space-y-7">
+        <div className="space-y-7 animate-fade-up">
+            {/* Payment Quick Card */}
+            <div className="glass-panel lift-on-hover relative overflow-hidden rounded-3xl border border-white/85 p-6">
+                <div className="pointer-events-none absolute -right-10 -top-10 h-36 w-36 rounded-full bg-cyan-200/45 blur-2xl" />
+                <div className="pointer-events-none absolute -bottom-12 -left-10 h-40 w-40 rounded-full bg-amber-200/45 blur-2xl" />
+                <div className="relative z-10 flex items-center justify-between gap-4">
+                    <div>
+                        <h3 className="text-lg font-bold text-slate-900">To'lovni amalga oshiring</h3>
+                        <p className="mt-1 text-sm text-slate-600">Kartangiz orqali tez va qulay tarzda to'lang</p>
+                    </div>
+                    <button
+                        onClick={() => setIsPaymentModalOpen(true)}
+                        className="brand-gradient flex items-center gap-2 rounded-2xl px-6 py-3 font-semibold text-white shadow-lg shadow-cyan-500/30 transition hover:-translate-y-0.5"
+                    >
+                        <CreditCard size={18} />
+                        To'lov qilish
+                    </button>
+                </div>
+            </div>
+
             <div className="space-y-4">
                 <h2 className="text-2xl font-medium text-slate-800">Dars jadvali</h2>
 
                 <div className="grid gap-5 lg:grid-cols-[340px_1fr]">
-                    <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+                    <div className="glass-panel rounded-3xl border border-white/85 bg-white/75 p-5 shadow-[0_18px_45px_rgba(14,116,144,0.12)]">
                         <div className="mb-5 flex items-center justify-between">
-                            <p className="text-xl font-medium text-slate-700">{currentMonthLabel}</p>
+                            <p className="text-xl font-semibold text-slate-800">{currentMonthLabel}</p>
                             <div className="flex items-center gap-2 text-slate-500">
                                 <button
                                     type="button"
                                     onClick={goPrevMonth}
-                                    className="rounded-lg p-1 transition hover:bg-slate-100"
+                                    className="rounded-lg p-1 transition hover:bg-white/80"
                                     aria-label="Oldingi oy"
                                 >
                                     <ChevronLeft size={18} />
@@ -112,7 +154,7 @@ export default function StudentDashboardPage() {
                                 <button
                                     type="button"
                                     onClick={goNextMonth}
-                                    className="rounded-lg p-1 transition hover:bg-slate-100"
+                                    className="rounded-lg p-1 transition hover:bg-white/80"
                                     aria-label="Keyingi oy"
                                 >
                                     <ChevronRight size={18} />
@@ -145,8 +187,8 @@ export default function StudentDashboardPage() {
                                         type="button"
                                         onClick={() => setSelectedDay(day)}
                                         className={`relative h-10 rounded-full text-sm transition ${hasEvent
-                                            ? 'bg-rose-500 text-white'
-                                            : 'text-slate-700 hover:bg-slate-100'
+                                            ? 'brand-gradient text-white'
+                                            : 'text-slate-700 hover:bg-white/95'
                                             } ${isSelected && !hasEvent ? 'border border-slate-400 bg-white font-semibold text-slate-800' : ''}`}
                                     >
                                         {dayNumber}
@@ -158,7 +200,7 @@ export default function StudentDashboardPage() {
 
                     <div className="space-y-3">
                         {selectedSchedules.map((item) => (
-                            <article key={item.id} className="rounded-3xl border border-emerald-200 bg-emerald-100/60 p-5">
+                            <article key={item.id} className="glass-panel rounded-3xl border border-emerald-200/80 bg-gradient-to-br from-emerald-50/80 via-cyan-50/70 to-white p-5">
                                 <h3 className="mb-3 text-xl font-medium text-slate-700">{item.title}</h3>
                                 <div className="flex items-center gap-2 text-slate-700">
                                     <Clock3 size={20} />
@@ -173,13 +215,21 @@ export default function StudentDashboardPage() {
                         ))}
 
                         {selectedSchedules.length === 0 && (
-                            <div className="rounded-3xl border border-slate-200 bg-white p-6 text-slate-500">
+                            <div className="glass-panel rounded-3xl border border-white/85 bg-white/70 p-6 text-slate-500">
                                 Tanlangan kun uchun dars topilmadi.
                             </div>
                         )}
                     </div>
                 </div>
             </div>
+
+            {/* Payment Modal */}
+            <PaymentModal
+                isOpen={isPaymentModalOpen}
+                onClose={() => setIsPaymentModalOpen(false)}
+                studentGroupId={studentGroupId}
+                studentId={studentId || 1}
+            />
         </div>
     );
 }

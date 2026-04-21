@@ -34,6 +34,8 @@ export const employeesApi = {
       fullName: payload.fullName,
       email: payload.email,
       position: payload.position,
+      role: payload.role,
+      password: payload.password,
     }, {
       headers: { 'Content-Type': 'application/json' },
     });

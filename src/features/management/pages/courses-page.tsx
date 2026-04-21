@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { coursesApi, type CoursePayload } from '@/api/courses.api';
+import { coursesApi } from '@/api/courses.api';
 import { Pencil, Trash2 } from 'lucide-react';
 
 type Course = {
@@ -13,14 +13,28 @@ type Course = {
   level?: string;
 };
 
+type CourseFormState = {
+  name: string;
+  durationMonth: string;
+  durationLesson: string;
+  price: string;
+  description: string;
+  level: string;
+};
+
 const levelOptions = [
   { value: 'BEGINNER', label: "Boshlang'ich" },
   { value: 'INTERMEDIATE', label: "O'rta" },
   { value: 'ADVANCED', label: 'Yuqori' },
 ];
 
-const initialForm: CoursePayload = {
-  name: '', durationMonth: 1, durationLesson: 60, price: 0, description: '', level: 'BEGINNER',
+const initialFormState: CourseFormState = {
+  name: '',
+  durationMonth: '1',
+  durationLesson: '60',
+  price: '',
+  description: '',
+  level: 'BEGINNER',
 };
 
 export default function CoursesPage() {
@@ -31,10 +45,8 @@ export default function CoursesPage() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
-  const [form, setForm] = useState<CoursePayload>(initialForm);
-  const [editForm, setEditForm] = useState<Partial<CoursePayload>>({
-    name: '', durationMonth: 1, durationLesson: 60, price: 0, description: '', level: 'BEGINNER',
-  });
+  const [form, setForm] = useState<CourseFormState>(initialFormState);
+  const [editForm, setEditForm] = useState<CourseFormState>(initialFormState);
 
   const load = async () => {
     try {
@@ -53,9 +65,16 @@ export default function CoursesPage() {
     setError('');
     setLoading(true);
     try {
-      await coursesApi.create(form);
+      await coursesApi.create({
+        name: form.name.trim(),
+        durationMonth: Number(form.durationMonth),
+        durationLesson: Number(form.durationLesson),
+        price: Number(form.price),
+        description: form.description,
+        level: form.level,
+      });
       setOpen(false);
-      setForm(initialForm);
+      setForm(initialFormState);
       load();
     } catch (err: any) {
       const message = err?.response?.data?.message;
@@ -82,9 +101,9 @@ export default function CoursesPage() {
     setEditCourse(course);
     setEditForm({
       name: course.name,
-      durationLesson: course.durationLesson,
-      durationMonth: course.durationMonth,
-      price: Number(course.price),
+      durationLesson: String(course.durationLesson),
+      durationMonth: String(course.durationMonth),
+      price: String(Number(course.price)),
       description: course.description || '',
       level: course.level || 'BEGINNER',
     });
@@ -97,7 +116,14 @@ export default function CoursesPage() {
     setError('');
     setLoading(true);
     try {
-      await coursesApi.update(editCourse.id, editForm);
+      await coursesApi.update(editCourse.id, {
+        name: editForm.name.trim(),
+        durationLesson: Number(editForm.durationLesson),
+        durationMonth: Number(editForm.durationMonth),
+        price: Number(editForm.price),
+        description: editForm.description,
+        level: editForm.level,
+      });
       setEditOpen(false);
       setEditCourse(null);
       load();
@@ -205,17 +231,17 @@ export default function CoursesPage() {
               <div>
                 <label className={labelCls}>Dars davomiyligi (daqiqa)</label>
                 <input type="number" className={inputCls}
-                  value={form.durationLesson} onChange={(e) => setForm({ ...form, durationLesson: Number(e.target.value) })} />
+                  value={form.durationLesson} onChange={(e) => setForm({ ...form, durationLesson: e.target.value })} />
               </div>
               <div>
                 <label className={labelCls}>Kurs davomiyligi (oy)</label>
                 <input type="number" className={inputCls}
-                  value={form.durationMonth} onChange={(e) => setForm({ ...form, durationMonth: Number(e.target.value) })} />
+                  value={form.durationMonth} onChange={(e) => setForm({ ...form, durationMonth: e.target.value })} />
               </div>
               <div>
                 <label className={labelCls}>Narx (so'm)</label>
                 <input type="number" className={inputCls}
-                  value={form.price} onChange={(e) => setForm({ ...form, price: Number(e.target.value) })} />
+                  value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} />
               </div>
               <div>
                 <label className={labelCls}>Daraja</label>
@@ -262,17 +288,17 @@ export default function CoursesPage() {
               <div>
                 <label className={labelCls}>Dars davomiyligi (daqiqa)</label>
                 <input type="number" className={inputCls}
-                  value={editForm.durationLesson} onChange={(e) => setEditForm({ ...editForm, durationLesson: Number(e.target.value) })} />
+                  value={editForm.durationLesson} onChange={(e) => setEditForm({ ...editForm, durationLesson: e.target.value })} />
               </div>
               <div>
                 <label className={labelCls}>Kurs davomiyligi (oy)</label>
                 <input type="number" className={inputCls}
-                  value={editForm.durationMonth} onChange={(e) => setEditForm({ ...editForm, durationMonth: Number(e.target.value) })} />
+                  value={editForm.durationMonth} onChange={(e) => setEditForm({ ...editForm, durationMonth: e.target.value })} />
               </div>
               <div>
                 <label className={labelCls}>Narx (so'm)</label>
                 <input type="number" className={inputCls}
-                  value={editForm.price} onChange={(e) => setEditForm({ ...editForm, price: Number(e.target.value) })} />
+                  value={editForm.price} onChange={(e) => setEditForm({ ...editForm, price: e.target.value })} />
               </div>
               <div>
                 <label className={labelCls}>Daraja</label>

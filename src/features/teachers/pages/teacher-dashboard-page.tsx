@@ -73,20 +73,20 @@ export default function TeacherDashboardPage() {
     ];
 
     return (
-        <div className="space-y-8">
+        <div className="space-y-8 animate-fade-up">
             <div className="flex flex-wrap items-center justify-between gap-4">
                 <div>
                     <h1 className="text-3xl font-semibold text-slate-900">Assalomu alaykum, {user?.fullName || 'Teacher'}!</h1>
                     <p className="mt-1 text-slate-500">Bugungi ishlar rejasini shu yerda kuzating.</p>
                 </div>
-                <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600">
+                <div className="rounded-2xl border border-white/85 bg-white/80 px-4 py-3 text-sm text-slate-600 shadow-sm backdrop-blur">
                     Bugungi sana: {today.toLocaleDateString('uz-UZ')}
                 </div>
             </div>
 
             <div className="grid gap-4 md:grid-cols-3">
                 {quickStats.map((item) => (
-                    <div key={item.title} className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+                    <div key={item.title} className="glass-panel lift-on-hover rounded-3xl border border-white/85 bg-gradient-to-br from-white via-cyan-50/70 to-emerald-50/60 p-6">
                         <p className="text-xs uppercase tracking-[0.2em] text-slate-400">{item.title}</p>
                         <div className="mt-3 text-3xl font-semibold text-slate-900">{item.value}</div>
                         <p className="mt-2 text-xs text-slate-500">{item.note}</p>
@@ -95,7 +95,7 @@ export default function TeacherDashboardPage() {
             </div>
 
             <div className="grid gap-4 lg:grid-cols-[1.2fr_1fr]">
-                <div className="rounded-3xl border border-slate-200 bg-white p-6">
+                <div className="glass-panel rounded-3xl border border-white/85 bg-white/75 p-6">
                     <div className="flex items-center justify-between">
                         <h3 className="text-lg font-semibold text-slate-800">Dars jadvali</h3>
                         <span className="text-xs text-slate-400">{monthName}</span>
@@ -115,7 +115,7 @@ export default function TeacherDashboardPage() {
                             return (
                                 <div
                                     key={date.toISOString()}
-                                    className={`flex h-12 flex-col items-center justify-center rounded-2xl border ${isToday ? 'border-slate-900 bg-slate-900 text-white' : 'border-slate-100 bg-slate-50 text-slate-700'}`}
+                                    className={`flex h-12 flex-col items-center justify-center rounded-2xl border ${isToday ? 'border-cyan-500 bg-gradient-to-br from-cyan-500 to-teal-500 text-white' : 'border-slate-100 bg-white/85 text-slate-700'}`}
                                 >
                                     <span className="text-sm font-medium">{date.getDate()}</span>
                                     {hasLesson && <span className="mt-1 h-1.5 w-1.5 rounded-full bg-red-500" />}
@@ -126,14 +126,14 @@ export default function TeacherDashboardPage() {
                     {loading && <p className="mt-4 text-xs text-slate-400">Yuklanmoqda...</p>}
                 </div>
 
-                <div className="rounded-3xl border border-slate-200 bg-gradient-to-br from-white via-slate-50 to-slate-100 p-6">
+                <div className="glass-panel rounded-3xl border border-white/85 bg-gradient-to-br from-white via-sky-50/60 to-emerald-50/60 p-6">
                     <h3 className="text-lg font-semibold text-slate-800">Bugungi darslar</h3>
                     {todaysLessons.length === 0 ? (
                         <p className="mt-2 text-sm text-slate-500">Hozircha darslar yo'q</p>
                     ) : (
                         <div className="mt-4 space-y-3">
                             {todaysLessons.map((lesson) => (
-                                <div key={lesson.id} className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm">
+                                <div key={lesson.id} className="rounded-2xl border border-white/85 bg-white/90 px-4 py-3 text-sm shadow-sm">
                                     <p className="font-medium text-slate-800">{lesson.name}</p>
                                     <p className="text-xs text-slate-500">{lesson.lessonTime || '-'} • {lesson.roomName || '-'}</p>
                                 </div>

@@ -116,12 +116,12 @@ export default function DashboardPage() {
   ];
 
   return (
-    <div className="space-y-4">
-      <div>
-        <h2 className="text-3xl font-bold tracking-tight text-violet-600 dark:text-violet-300">
+    <div className="space-y-5 animate-fade-up">
+      <div className="glass-panel rounded-3xl border border-white/80 p-6">
+        <h2 className="text-3xl font-bold tracking-tight brand-gradient-text">
           {t('najotTitle')}
         </h2>
-        <p className="mt-1 text-slate-500 dark:text-slate-400">{t('dashboardSubTitle')}</p>
+        <p className="mt-1 text-slate-600 dark:text-slate-300">{t('dashboardSubTitle')}</p>
       </div>
 
       <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
@@ -131,7 +131,7 @@ export default function DashboardPage() {
             type="button"
             onClick={item.onClick}
             disabled={!item.onClick}
-            className={`rounded-2xl border border-slate-200 bg-white p-5 text-left shadow-sm transition dark:border-slate-700 dark:bg-slate-900 ${item.onClick ? 'cursor-pointer hover:-translate-y-0.5 hover:shadow-md' : 'cursor-default'
+            className={`glass-panel lift-on-hover rounded-2xl border border-white/80 p-5 text-left transition dark:border-slate-700 dark:bg-slate-900 ${item.onClick ? 'cursor-pointer' : 'cursor-default'
               }`}
           >
             <div className={`mb-3 inline-flex h-9 w-9 items-center justify-center rounded-xl ${item.iconBg}`}>
@@ -149,11 +149,11 @@ export default function DashboardPage() {
         ))}
       </div>
 
-      <div className="rounded-2xl border border-slate-200 bg-white p-5 dark:border-slate-700 dark:bg-slate-900">
+      <div className="glass-panel rounded-2xl border border-white/80 p-5 dark:border-slate-700 dark:bg-slate-900">
         <h3 className="text-2xl font-bold text-slate-900 dark:text-white">{t('monthlyPayments')}</h3>
         <div className="mt-3 grid gap-2 md:grid-cols-3">
           {paymentCards.map((card) => (
-            <div key={card.key} className={`rounded-2xl p-4 ${card.tone}`}>
+            <div key={card.key} className={`rounded-2xl p-4 shadow-sm ${card.tone}`}>
               <div className="flex items-center gap-2">
                 <card.icon size={16} />
                 <p className="text-sm font-medium">{card.label}</p>
@@ -164,9 +164,9 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      <div className="rounded-2xl border border-slate-200 bg-white p-5 dark:border-slate-700 dark:bg-slate-900">
+      <div className="glass-panel rounded-2xl border border-white/80 p-5 dark:border-slate-700 dark:bg-slate-900">
         <h3 className="text-2xl font-bold text-slate-900 dark:text-white">{t('lessonSchedule')}</h3>
-        <div className="mt-3 flex items-center gap-3 rounded-2xl border border-slate-200 px-3 py-2.5 text-slate-500 dark:border-slate-700 dark:text-slate-400">
+        <div className="mt-3 flex items-center gap-3 rounded-2xl border border-white/80 bg-white/75 px-3 py-2.5 text-slate-600 dark:border-slate-700 dark:text-slate-400">
           <CalendarDays size={16} />
           <span>{t('noLessonToday')}</span>
         </div>

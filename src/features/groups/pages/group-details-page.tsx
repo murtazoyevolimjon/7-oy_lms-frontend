@@ -87,6 +87,11 @@ const statusLabels: Record<HomeworkStatusTab, string> = {
     APPROVED: 'Qabul qilingan',
 };
 
+const cleanLessonTitle = (title?: string) => {
+    if (!title) return '';
+    return title.replace(/^\s*-{2,}\s*/, '').trim();
+};
+
 const GroupDetailsPage = () => {
     const { id } = useParams();
     const navigate = useNavigate();
@@ -444,7 +449,7 @@ const GroupDetailsPage = () => {
             setAttendanceSaved(false);
             return;
         }
-        setTopic(selectedLesson.title || '');
+        setTopic(cleanLessonTitle(selectedLesson.title) || '');
         setAttendanceSaved(attendanceData.length > 0);
     }, [selectedLesson, attendanceData.length]);
 
@@ -679,7 +684,7 @@ const GroupDetailsPage = () => {
                                         {lessons.map((lesson, index) => (
                                             <div key={lesson.id} className="flex items-center gap-3 rounded-2xl bg-slate-50 px-4 py-2 text-sm">
                                                 <span className="text-slate-400">{index + 1}.</span>
-                                                <span className="font-medium text-slate-800">{lesson.title}</span>
+                                                <span className="font-medium text-slate-800">{cleanLessonTitle(lesson.title)}</span>
                                             </div>
                                         ))}
                                     </div>
@@ -977,9 +982,17 @@ const GroupDetailsPage = () => {
 
             {tab === 'attendance' && (
                 <div className="space-y-6">
-                    <div className="rounded-2xl border bg-white p-5">
+                    <div className="glass-panel rounded-3xl border border-white/80 bg-white/85 p-5 shadow-sm backdrop-blur">
                         <div className="grid gap-6 lg:grid-cols-[1fr_240px]">
                             <div className="space-y-4">
+                                <div className="flex flex-wrap items-center gap-2">
+                                    <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700">
+                                        Akademik davomat paneli
+                                    </span>
+                                    <span className="rounded-full bg-sky-100 px-3 py-1 text-xs font-semibold text-sky-700">
+                                        {lessons.length} ta dars
+                                    </span>
+                                </div>
                                 <div>
                                     <p className="text-sm text-slate-400">Ma'lumot</p>
                                     <div className="mt-3 flex items-center gap-3">
@@ -997,7 +1010,7 @@ const GroupDetailsPage = () => {
                                     <div>
                                         <p className="text-xs text-slate-400">Dars kuni</p>
                                         <select
-                                            className="mt-2 w-full rounded-xl border px-3 py-2 text-sm"
+                                            className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-sm outline-none focus:border-emerald-300 focus:ring-2 focus:ring-emerald-100"
                                             value={selectedLesson?.id || ''}
                                             onChange={(e) => {
                                                 const lesson = lessons.find((l) => l.id === Number(e.target.value));
@@ -1007,7 +1020,7 @@ const GroupDetailsPage = () => {
                                             <option value="">Darsni tanlang</option>
                                             {lessons.map((lesson) => (
                                                 <option key={lesson.id} value={lesson.id}>
-                                                    {formatDateTime(lesson.created_at)} — {lesson.title}
+                                                    {formatDateTime(lesson.created_at)} • {cleanLessonTitle(lesson.title)}
                                                 </option>
                                             ))}
                                         </select>
@@ -1033,14 +1046,14 @@ const GroupDetailsPage = () => {
                                 </div>
                             </div>
 
-                            <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-4 text-sm text-slate-500">
+                            <div className="rounded-2xl border border-dashed border-sky-200 bg-gradient-to-br from-sky-50 to-cyan-50 p-4 text-sm text-slate-500">
                                 <p className="font-semibold text-slate-700">Eslatma</p>
                                 <p className="mt-2">Dars mavzusini kiriting va davomatni belgilang. Saqlash mavzu to'ldirilganda faol bo'ladi.</p>
                             </div>
                         </div>
                     </div>
 
-                    <div className="rounded-2xl border bg-white p-5">
+                    <div className="glass-panel rounded-3xl border border-white/80 bg-white/90 p-5 shadow-sm backdrop-blur">
                         <div className="mb-5">
                             <h3 className="text-lg font-semibold text-slate-800">Yo'qlama va mavzu kiritish</h3>
                             <p className="text-sm text-slate-500">Dars mavzusini yozing va davomatni to'ldiring</p>
@@ -1312,7 +1325,7 @@ const GroupDetailsPage = () => {
                                     <option value="">Darsni tanlang</option>
                                     {lessons.map((lesson) => (
                                         <option key={lesson.id} value={lesson.id}>
-                                            {lesson.title}
+                                            {cleanLessonTitle(lesson.title)}
                                         </option>
                                     ))}
                                 </select>
@@ -1393,7 +1406,7 @@ const GroupDetailsPage = () => {
                                     <option value="">Darsni tanlang</option>
                                     {lessons.map((lesson) => (
                                         <option key={lesson.id} value={lesson.id}>
-                                            {lesson.title}
+                                            {cleanLessonTitle(lesson.title)}
                                         </option>
                                     ))}
                                 </select>

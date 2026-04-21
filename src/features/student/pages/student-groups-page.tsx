@@ -50,26 +50,26 @@ export default function StudentGroupsPage() {
     }, [groups, tab]);
 
     return (
-        <div className="space-y-4">
+        <div className="space-y-5 animate-fade-up">
             <div className="flex items-center justify-between">
                 <h1 className="text-2xl font-bold text-slate-800">Guruhlarim</h1>
             </div>
 
-            <div className="flex gap-2 border-b">
+            <div className="glass-panel inline-flex rounded-2xl border border-white/85 p-1">
                 <button
                     onClick={() => setTab('active')}
-                    className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${tab === 'active'
-                        ? 'border-amber-500 text-amber-600'
-                        : 'border-transparent text-slate-500 hover:text-slate-700'
+                    className={`rounded-xl px-4 py-2 text-sm font-medium transition-colors ${tab === 'active'
+                        ? 'bg-gradient-to-r from-cyan-500 to-teal-500 text-white shadow-md'
+                        : 'text-slate-500 hover:bg-white/80 hover:text-slate-700'
                         }`}
                 >
                     Faol
                 </button>
                 <button
                     onClick={() => setTab('archived')}
-                    className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${tab === 'archived'
-                        ? 'border-amber-500 text-amber-600'
-                        : 'border-transparent text-slate-500 hover:text-slate-700'
+                    className={`rounded-xl px-4 py-2 text-sm font-medium transition-colors ${tab === 'archived'
+                        ? 'bg-gradient-to-r from-cyan-500 to-teal-500 text-white shadow-md'
+                        : 'text-slate-500 hover:bg-white/80 hover:text-slate-700'
                         }`}
                 >
                     Tugagan
@@ -78,11 +78,11 @@ export default function StudentGroupsPage() {
 
             {error && <p className="rounded-xl bg-red-50 p-3 text-sm text-red-600">{error}</p>}
 
-            <div className="rounded-2xl border border-slate-200 bg-white">
+            <div className="glass-panel overflow-hidden rounded-3xl border border-white/85 bg-white/80 shadow-[0_20px_50px_rgba(14,116,144,0.12)]">
                 <div className="overflow-x-auto">
                     <table className="min-w-full text-left text-sm">
                         <thead>
-                            <tr className="border-b border-slate-200 text-slate-500">
+                            <tr className="border-b border-white/80 bg-white/60 text-slate-500">
                                 <th className="px-4 py-3">#</th>
                                 <th className="px-4 py-3">Guruh nomi</th>
                                 <th className="px-4 py-3">Yo'nalishi</th>
@@ -108,7 +108,7 @@ export default function StudentGroupsPage() {
                                     <tr
                                         key={group.id}
                                         onClick={() => navigate(`/student/groups/${group.id}`)}
-                                        className="cursor-pointer border-b border-slate-100 hover:bg-slate-50"
+                                        className="cursor-pointer border-b border-white/80 hover:bg-cyan-50/50"
                                     >
                                         <td className="px-4 py-3 text-slate-500">{index + 1}</td>
                                         <td className="px-4 py-3">
@@ -118,7 +118,7 @@ export default function StudentGroupsPage() {
                                                     event.stopPropagation();
                                                     navigate(`/student/groups/${group.id}`);
                                                 }}
-                                                className="font-medium text-amber-600 hover:underline"
+                                                className="font-medium text-cyan-700 hover:underline"
                                             >
                                                 {group.name}
                                             </button>

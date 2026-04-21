@@ -39,8 +39,12 @@ export function AppSidebar() {
   };
 
   return (
-    <aside className="flex h-screen w-64 shrink-0 flex-col border-r border-slate-200 bg-white/95 p-4 backdrop-blur dark:border-slate-700 dark:bg-slate-900/95">
-      <div className="mb-6 px-2 text-2xl font-bold text-violet-600 dark:text-violet-400">Najot Ta'lim</div>
+    <aside className="glass-panel hidden h-screen w-72 shrink-0 flex-col border-r border-white/75 p-5 lg:flex">
+      <div className="mb-7 rounded-2xl border border-white/70 bg-white/75 p-4 shadow-sm">
+        <p className="mb-2 text-xs font-bold uppercase tracking-[0.22em] text-sky-700/80">Learning CRM</p>
+        <div className="text-2xl font-bold brand-gradient-text">Najot Ta'lim</div>
+      </div>
+
       <nav className="flex-1 space-y-1">
         {mainItems.map((item) => {
           const Icon = item.icon;
@@ -51,10 +55,10 @@ export function AppSidebar() {
               end={item.to === '/admin/dashboard'}
               className={({ isActive }) =>
                 cn(
-                  'flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition',
+                  'flex items-center gap-3 rounded-2xl px-4 py-3.5 text-sm font-semibold transition',
                   isActive
-                    ? 'bg-gradient-to-r from-violet-600 to-indigo-600 text-white shadow-sm'
-                    : 'text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800',
+                    ? 'brand-gradient text-white shadow-lg shadow-sky-500/25'
+                    : 'text-slate-700 hover:bg-white/80 hover:shadow-sm dark:text-slate-200 dark:hover:bg-slate-800',
                 )
               }
             >
@@ -73,13 +77,13 @@ export function AppSidebar() {
           <button
             onClick={() => setManagementOpen(!managementOpen)}
             className={cn(
-              'flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition',
+              'flex w-full items-center gap-3 rounded-2xl px-4 py-3.5 text-sm font-semibold transition',
               managementOpen
-                ? 'bg-violet-50 text-violet-600 dark:bg-violet-500/20 dark:text-violet-300'
-                : 'text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800',
+                ? 'bg-sky-50 text-sky-700 dark:bg-sky-500/20 dark:text-sky-300'
+                : 'text-slate-700 hover:bg-white/80 dark:text-slate-200 dark:hover:bg-slate-800',
             )}
           >
-            <Settings size={18} className={managementOpen ? 'text-violet-600' : 'text-rose-500'} />
+            <Settings size={18} className={managementOpen ? 'text-sky-700' : 'text-orange-500'} />
             <span className="flex-1 text-left">Boshqarish</span>
             {managementOpen
               ? <ChevronDown size={16} />
@@ -88,7 +92,7 @@ export function AppSidebar() {
           </button>
 
           {managementOpen && (
-            <div className="ml-4 mt-1 space-y-1 border-l-2 border-violet-100 pl-3 dark:border-violet-800">
+            <div className="ml-4 mt-2 space-y-1 border-l-2 border-sky-100 pl-3 dark:border-sky-800">
               {managementItems.map((item) => {
                 const Icon = item.icon;
                 return (
@@ -97,10 +101,10 @@ export function AppSidebar() {
                     to={item.to}
                     className={({ isActive }) =>
                       cn(
-                        'flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium transition',
+                        'flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition',
                         isActive
-                          ? 'bg-gradient-to-r from-violet-600 to-indigo-600 text-white'
-                          : 'text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800',
+                          ? 'brand-gradient text-white'
+                          : 'text-slate-700 hover:bg-white/80 dark:text-slate-200 dark:hover:bg-slate-800',
                       )
                     }
                   >
@@ -120,7 +124,7 @@ export function AppSidebar() {
 
       <button
         onClick={handleLogout}
-        className="mt-4 flex items-center justify-center gap-3 rounded-xl bg-red-500 px-4 py-3 text-sm font-medium text-white transition hover:bg-red-600"
+        className="mt-4 flex items-center justify-center gap-3 rounded-2xl bg-gradient-to-r from-orange-500 to-rose-500 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-orange-400/20 transition hover:brightness-105"
       >
         <LogOut size={18} />
         Chiqish
