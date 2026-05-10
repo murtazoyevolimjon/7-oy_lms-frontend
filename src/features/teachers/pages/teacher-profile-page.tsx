@@ -81,7 +81,7 @@ export default function TeacherProfilePage() {
                     <div className="mt-6 space-y-3 text-sm text-slate-600">
                         <div className="flex items-center justify-between">
                             <span>Email</span>
-                            <span className="font-medium text-slate-800">{profile?.email || user?.email || '-'}</span>
+                            <span className="font-medium text-slate-800">{profile?.email || '-'}</span>
                         </div>
                         <div className="flex items-center justify-between">
                             <span>Tajriba</span>
@@ -98,7 +98,7 @@ export default function TeacherProfilePage() {
                     <div className="grid gap-4 sm:grid-cols-2">
                         <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
                             <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Email</p>
-                            <p className="mt-3 text-sm font-medium text-slate-900">{profile?.email || user?.email || '-'}</p>
+                            <p className="mt-3 text-sm font-medium text-slate-900">{profile?.email || '-'}</p>
                         </div>
                         <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
                             <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Tajriba</p>
