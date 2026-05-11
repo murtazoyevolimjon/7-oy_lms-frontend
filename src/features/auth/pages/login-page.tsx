@@ -8,7 +8,6 @@ export default function LoginPage() {
   const navigate = useNavigate();
   const [form, setForm] = useState({ email: '', password: '' });
   const [showPassword, setShowPassword] = useState(true);
-  const [role, setRole] = useState<'admin' | 'teacher' | 'student'>('admin');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -21,11 +20,37 @@ export default function LoginPage() {
     }
     try {
       setLoading(true);
-      const res = role === 'student'
-        ? await authApi.loginStudent(form)
-        : role === 'teacher'
-          ? await authApi.loginTeacher(form)
-          : await authApi.loginAdmin(form);
+      let res = null;
+      let loginError = null;
+
+      // Try admin login
+      try {
+        res = await authApi.loginAdmin(form);
+      } catch (err) {
+        loginError = err;
+      }
+
+      // If admin failed, try teacher login
+      if (!res) {
+        try {
+          res = await authApi.loginTeacher(form);
+        } catch (err) {
+          loginError = err;
+        }
+      }
+
+      // If teacher failed, try student login
+      if (!res) {
+        try {
+          res = await authApi.loginStudent(form);
+        } catch (err) {
+          loginError = err;
+        }
+      }
+
+      if (!res) {
+        throw loginError || new Error('Login xatoligi');
+      }
 
       const resolvedRole = String(res.user?.role || '').toUpperCase();
       const redirectPath = resolvedRole === 'STUDENT'
@@ -36,13 +61,11 @@ export default function LoginPage() {
 
       authStore.setToken(res.accessToken);
       authStore.setUser(res.user);
-      authStore.setRole(
-        resolvedRole || (role === 'student' ? 'STUDENT' : role === 'teacher' ? 'TEACHER' : 'ADMIN'),
-      );
+      authStore.setRole(resolvedRole || 'ADMIN');
       navigate(redirectPath, { replace: true });
     } catch (err: any) {
       const message = err?.response?.data?.message;
-      setError(Array.isArray(message) ? message.join(', ') : message || 'Login xatoligi');
+      setError(Array.isArray(message) ? message.join(', ') : message || 'Admindan login va parolni oling');
     } finally {
       setLoading(false);
     }
@@ -85,42 +108,6 @@ export default function LoginPage() {
             </div>
 
             <div>
-              <label className="mb-2 block text-sm font-medium">Rol</label>
-              <div className="grid grid-cols-3 gap-2 rounded-2xl bg-white/80 p-1.5 shadow-inner">
-                <button
-                  type="button"
-                  onClick={() => setRole('admin')}
-                  className={`rounded-xl px-3 py-2 text-sm font-semibold transition ${role === 'admin'
-                    ? 'brand-gradient text-white shadow'
-                    : 'text-slate-600 hover:bg-slate-100'
-                    }`}
-                >
-                  Admin
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setRole('teacher')}
-                  className={`rounded-xl px-3 py-2 text-sm font-semibold transition ${role === 'teacher'
-                    ? 'brand-gradient text-white shadow'
-                    : 'text-slate-600 hover:bg-slate-100'
-                    }`}
-                >
-                  Teacher
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setRole('student')}
-                  className={`rounded-xl px-3 py-2 text-sm font-semibold transition ${role === 'student'
-                    ? 'brand-gradient text-white shadow'
-                    : 'text-slate-600 hover:bg-slate-100'
-                    }`}
-                >
-                  Student
-                </button>
-              </div>
-            </div>
-
-            <div>
               <label className="mb-2 block text-sm font-medium">Login</label>
               <input
                 className="w-full rounded-2xl border border-white/80 bg-white/85 px-4 py-3 outline-none focus:border-sky-300 focus:ring-2 focus:ring-sky-100"
@@ -149,7 +136,9 @@ export default function LoginPage() {
                 </button>
               </div>
             </div>
-            {error && <p className="text-sm text-red-500">{error}</p>}
+            {error && (
+              <p className="text-center text-sm font-semibold text-red-600">{error}</p>
+            )}
             <button
               type="submit"
               disabled={loading}
